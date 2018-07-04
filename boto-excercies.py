@@ -1,6 +1,6 @@
 import boto3
 import argparse
-from pprint import pprint
+import prettytable
 
 '''
 Returns list of 'Instances' metadata in chosen region/account.
