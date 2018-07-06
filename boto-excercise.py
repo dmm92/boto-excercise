@@ -37,9 +37,14 @@ def deep_access(data, key_list):
 
 
 '''
-- Returns list of 'Instances' metadata in chosen region/account.
-boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.describe_instances
-- Specify tag_key and/or tag_value to filter by key, value, or key/value pair.
+Returns list of 'Instances' metadata in chosen region/account, see
+boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.describe_instances.
+
+Specify tag_key and/or tag_value to filter by key, value, or key/value pair. 
+
+add_region and add_profile will add the string passed to each instance['Region'] and
+instance['LocalAwsCredsProfile'] repectively.
+
 TODO: kwargs?
 TODO: describe each arg
 TODO: different way of getting profile into table rather than adding to metadata
@@ -110,17 +115,20 @@ def get_instance_metadata(
     
     if add_profile:
         for instance in instance_metadata:
-            instance['LocalAwsCliProfile'] = add_profile
+            instance['LocalAwsCredsProfile'] = add_profile
  
     return instance_metadata
 
 
 '''
 Returns constructed prettytable
-column_map keys become column headings, values are a list of nested keys to access in 
-instance_metadata. For example, column_map['Availability Zone'] = ['Placement', 'AvailabilityZone']
+
+column_map keys become column headings, column_map values are a list of nested keys to access in
+each list of instance metadata. 
+
+For example, column_map['Availability Zone'] = ['Placement', 'AvailabilityZone']
 This would create a column labeled 'Availability Zone' where the value for each instance (row)
-is instance_metadata['Placement']['AvailabilityZone']
+is instance['Placement']['AvailabilityZone']
 '''
 def create_table(instance_metadata, column_map):
     
@@ -254,7 +262,7 @@ def main():
         'Instance ID': ['InstanceId'],
         'Instance Type': ['InstanceType'],
         'Launch Time': ['LaunchTime'],
-        'Profile': ['LocalAwsCliProfile'],
+        'Profile': ['LocalAwsCredsProfile'],
         'Region': ['Region'],
         'Tag: {}'.format(args.tag_key): ['Tags', args.tag_key]
     }
