@@ -50,7 +50,7 @@ def get_instance_metadata(
     tag_value=None,
     fix_tags=True,
     add_region=None,
-    add_profile=True
+    add_profile=None
 ):
 
     kwargs = {}
