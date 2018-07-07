@@ -3,6 +3,7 @@ import argparse
 import prettytable
 from tqdm import tqdm
 
+
 ALL_REGIONS = [
     'ap-south-1',
     'eu-west-3',
@@ -21,9 +22,10 @@ ALL_REGIONS = [
     'us-west-2'
 ]
 
+
 '''
 https://stackoverflow.com/questions/30648317
-Returns value of arbitrarily nested keys
+Returns value of arbitrarily nested keys, None if KeyError
 e.g. return data[key_list[0]][key_list[1]]...[key_list[n]]
 '''
 def deep_access(data, key_list):
@@ -32,7 +34,8 @@ def deep_access(data, key_list):
         try:
             value = value[key]
         except Exception as e:
-            value = 'unknown'
+            value = None
+            break
     return value
 
 
@@ -40,14 +43,15 @@ def deep_access(data, key_list):
 Returns list of 'Instances' metadata in chosen region/account, see
 boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.describe_instances.
 
-Specify tag_key and/or tag_value to filter by key, value, or key/value pair. 
+Specify tag_key and/or tag_value to filter by key, value, or key/value pair.
 
 add_region and add_profile will add the string passed to each instance['Region'] and
 instance['LocalAwsCredsProfile'] repectively.
 
-TODO: kwargs?
-TODO: describe each arg
-TODO: different way of getting profile into table rather than adding to metadata
+If True, fix_tags will take the frustrating [{'Key': key_name,'Value': value}] tag structure,
+converting it into a real dict where Tags[key_name] = value
+
+TODO: different way of getting profile into table rather than adding to metadata?
 '''
 def get_instance_metadata(
     ec2_client,
@@ -77,7 +81,6 @@ def get_instance_metadata(
                     'Values': [tag_key]
                 }
             ]
-
     elif tag_value:
         # Only value is specified, filter by value=tag_value (any key)
         kwargs['Filters'] = [
@@ -100,7 +103,7 @@ def get_instance_metadata(
             break
         else:
             kwargs['NextToken'] = instances_page['NextToken']
- 
+
     # 'Fix' tags -- make instance['Tags'] a dict
     if fix_tags:
         for instance in instance_metadata:
@@ -108,46 +111,42 @@ def get_instance_metadata(
             for tag_dict in instance.get('Tags', {}):
                 tags[tag_dict['Key']] = tag_dict['Value']
             instance['Tags'] = tags
- 
+
     if add_region:
         for instance in instance_metadata:
             instance['Region'] = add_region
-    
+
     if add_profile:
         for instance in instance_metadata:
             instance['LocalAwsCredsProfile'] = add_profile
- 
+
     return instance_metadata
 
 
 '''
-Returns constructed prettytable
+Returns constructed PrettyTable
 
 column_map keys become column headings, column_map values are a list of nested keys to access in
-each list of instance metadata. 
-
-For example, column_map['Availability Zone'] = ['Placement', 'AvailabilityZone']
+each list of instance metadata. For example:
+    column_map['Availability Zone'] = ['Placement', 'AvailabilityZone']
 This would create a column labeled 'Availability Zone' where the value for each instance (row)
 is instance['Placement']['AvailabilityZone']
 '''
 def create_table(instance_metadata, column_map):
-    
-    columns = [key for key in sorted(column_map.keys())]
-    
-    # Table headings/columns:
-    table = prettytable.PrettyTable(columns)
 
-    # Table style:
-    # # table.set_style(prettytable.PLAIN_COLUMNS)
+    columns = [key for key in sorted(column_map.keys())]
+    table = prettytable.PrettyTable(columns)
     table.align = 'l'
-    
+    # TODO: option for borderless? # table.set_style(prettytable.PLAIN_COLUMNS)
+
     # Construct table
     for instance in instance_metadata:
         row = []
         for column in columns:
-
-            row.append(deep_access(instance, column_map[column]))
-            
+            value = deep_access(instance, column_map[column])
+            if value is None:
+                value = 'unknown'
+            row.append(value)
         table.add_row(row)
 
     return table
@@ -173,7 +172,6 @@ def period_delimited_list(period_delimited_string):
 
 '''
 TODO: full strict mode (not just tags, anything else)
-TODO: configurable tags, not just for strict mode
 TODO: choose sort column?
 '''
 def main():
@@ -207,15 +205,16 @@ def main():
         action='store_true',
         dest='strict_mode',
         default=None,
-        help='Strict Mode: Displays only instances that match specified tag key and/or tag value'
+        help='Strict Mode: Displays only instances that match specified tag key and (optionally) tag value'
     )
     parser.add_argument(
         '-x',
-        dest='arbitrary_property',
+        dest='arbitrary_properties',
         default=None,
-        help='Arbitrary Property: specify as period-delimited string where x.y.z is \
-            instance[x][y][z] and instance is an object in Reservations[\'Instances\'] e.g. \
-            NetworkInterfaces.0.Association.PublicIp'
+        help='Arbitrary Properties: One or more period-delimited strings, seperated by commas, \
+            where x.y.z is instance[x][y][z] and instance is an object in AWS describe_instances \
+            response object Reservations[\'Instances\'] e.g. \
+            \'-x NetworkInterfaces.0.Association.PublicIp,Placement.AvailabilityZone\''
     )
     args = parser.parse_args()
 
@@ -226,7 +225,7 @@ def main():
     profiles = comma_delimited_list(args.profiles)
 
     instance_metadata = []
-    # progress bar description is '<region>/<profile>', updates as it iterates
+    # progress bar description is 'region/profile', updates as it iterates
     max_description_length = len(max(profiles, key=len)) + len(max(regions, key=len)) + 1
     print
     with tqdm(total=len(regions)*len(profiles), ncols=100) as progress:
@@ -235,7 +234,7 @@ def main():
                 description = '{}/{}'.format(region, profile)
                 description += ' ' * (max_description_length - len(description))
                 progress.set_description(description)
-                
+
                 boto_session = boto3.session.Session(profile_name=profile, region_name=region)
                 ec2_client = boto_session.client('ec2')
 
@@ -256,8 +255,10 @@ def main():
 
                 progress.update()
 
+        # after completion, set to generic description
         progress.set_description('Instance Metadata')
 
+    # See create_table() for explanation of column_map
     column_map = {
         'Instance ID': ['InstanceId'],
         'Instance Type': ['InstanceType'],
@@ -267,12 +268,12 @@ def main():
         'Tag: {}'.format(args.tag_key): ['Tags', args.tag_key]
     }
 
-    # Add arbitrary property column
-    if args.arbitrary_property:
-        pdl = period_delimited_list(args.arbitrary_property)
-        column_map[pdl[len(pdl)-1]] = pdl
+    if args.arbitrary_properties:
+        properties = comma_delimited_list(args.arbitrary_properties)
+        for prop in properties:
+            pdl = period_delimited_list(prop)
+            column_map[ prop] = pdl
 
-    # Create and print PrettyTable
     table = create_table(instance_metadata, column_map)
     table_string = table.get_string(sortby='Tag: {}'.format(args.tag_key))
     print '\n' + table_string + '\n'
