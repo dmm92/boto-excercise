@@ -4,6 +4,7 @@ import prettytable
 from tqdm import tqdm
 
 
+# TODO: could use describe_regions instead
 ALL_REGIONS = [
     'ap-south-1',
     'eu-west-3',
@@ -24,31 +25,15 @@ ALL_REGIONS = [
 
 
 '''
-https://stackoverflow.com/questions/30648317
-Returns value of arbitrarily nested keys, None if KeyError
-e.g. return data[key_list[0]][key_list[1]]...[key_list[n]]
-'''
-def deep_access(data, key_list):
-    value = data
-    for key in key_list:
-        try:
-            value = value[key]
-        except Exception as e:
-            value = None
-            break
-    return value
-
-
-'''
 Returns list of 'Instances' metadata in chosen region/account, see
 boto3.readthedocs.io/en/latest/reference/services/ec2.html#EC2.Client.describe_instances.
 
 Specify tag_key and/or tag_value to filter by key, value, or key/value pair.
 
-add_region and add_profile will add the string passed to each instance['Region'] and
-instance['LocalAwsCredsProfile'] repectively.
+add_region and add_profile will add the string passed to each instance's metadata e.g.
+instance['Region'] and instance['LocalAwsCredsProfile'] repectively.
 
-If True, fix_tags will take the frustrating [{'Key': key_name,'Value': value}] tag structure,
+If True, fix_tags will fix the frustrating [{'Key': key_name,'Value': value}] tag structure,
 converting it into a real dict where Tags[key_name] = value
 
 TODO: different way of getting profile into table rather than adding to metadata?
@@ -104,7 +89,7 @@ def get_instance_metadata(
         else:
             kwargs['NextToken'] = instances_page['NextToken']
 
-    # 'Fix' tags -- make instance['Tags'] a dict
+    # 'Fix' tags -- make instance['Tags'] a real dict
     if fix_tags:
         for instance in instance_metadata:
             tags = {}
@@ -124,6 +109,22 @@ def get_instance_metadata(
 
 
 '''
+https://stackoverflow.com/questions/30648317
+Returns value of arbitrarily nested keys, None if KeyError
+e.g. return data[key_list[0]][key_list[1]]...[key_list[n]]
+'''
+def deep_access(data, key_list):
+    value = data
+    for key in key_list:
+        try:
+            value = value[key]
+        except Exception as e:
+            value = None
+            break
+    return value
+
+
+'''
 Returns constructed PrettyTable
 
 column_map keys become column headings, column_map values are a list of nested keys to access in
@@ -139,13 +140,12 @@ def create_table(instance_metadata, column_map):
     table.align = 'l'
     # TODO: option for borderless? # table.set_style(prettytable.PLAIN_COLUMNS)
 
-    # Construct table
     for instance in instance_metadata:
         row = []
         for column in columns:
             value = deep_access(instance, column_map[column])
             if value is None:
-                value = 'unknown'
+                value = 'unknown' # TODO: clearer default value?
             row.append(value)
         table.add_row(row)
 
@@ -173,6 +173,8 @@ def period_delimited_list(period_delimited_string):
 '''
 TODO: full strict mode (not just tags, anything else)
 TODO: choose sort column?
+TODO: support setting titles for arbitrary properties columns?
+      ('AZ=Placement.AvailabilityZone',...)?
 '''
 def main():
     parser = argparse.ArgumentParser()
@@ -205,7 +207,8 @@ def main():
         action='store_true',
         dest='strict_mode',
         default=None,
-        help='Strict Mode: Displays only instances that match specified tag key and (optionally) tag value'
+        help='Strict Mode: Displays only instances that match specified tag key and (optionally) \
+            tag value'
     )
     parser.add_argument(
         '-x',
@@ -258,7 +261,7 @@ def main():
         # after completion, set to generic description
         progress.set_description('Instance Metadata')
 
-    # See create_table() for explanation of column_map
+    # see create_table() for explanation of column_map
     column_map = {
         'Instance ID': ['InstanceId'],
         'Instance Type': ['InstanceType'],
@@ -275,7 +278,10 @@ def main():
             column_map[ prop] = pdl
 
     table = create_table(instance_metadata, column_map)
+    
+    # get string, sort by tag
     table_string = table.get_string(sortby='Tag: {}'.format(args.tag_key))
+    
     print '\n' + table_string + '\n'
 
 
