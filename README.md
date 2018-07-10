@@ -7,21 +7,27 @@ Simple python tool using boto3 to list instances by tags
 - The policy for your IAM user(s) must allow DescribeInstances
 
 
-##Usage
+## Usage
 ### -p (profiles)
 Specify as comma-delimited list of locally configured AWS CLI/Boto profiles
+
 Example: `-p default,stage,prod`
 ### -r (regions)
 Specify as comma-delimited list of AWS regions from which to gather data. Can specify 'all' for all AWS regions.
+
 Example: `-r us-east-1,us-west-2`
 ### -t (tag key)
-Specifies the key of the tag to list in the dedicated tag column. Default is `ops_group`
+Specifies the key of the tag to list in the dedicated tag column.
+
+Default is `ops_group`
 
 ### -v (tag value)
 Currently does nothing unless `-s` (strict mode enabled). With `-s` allows you to filter by value so that you only see instances that match your key/value pair.
 
 ### -x (arbitrary properties)
-This argument allows you to specify arbitrary properties to display in additional columns. All it requires is knowing the structure of the boto response object returned by descibe_instances(). You can specify the property by its position in the instance metadata, each dictionary key or list index seperated by a period. For example, `-x NetworkInterfaces.0.Association.PrivateIp` adds a column for the private IP of the 0th network interface in the NetworkInterfaces list. EC2 instances often only need one interface so this tends to get you the one and only private IP. See 'Usage Examples' section for usage paired with examples of metadata structure.
+This argument allows you to specify arbitrary properties to display in additional columns. All it requires is knowing the structure of the boto response object returned by descibe_instances(). You can specify the property by its position in the instance metadata, each dictionary key or list index seperated by a period. You can supply multiple, separated by commas. 
+
+For example, `-x NetworkInterfaces.0.Association.PrivateIp` adds a column for the private IP of the 0th network interface in the NetworkInterfaces list. EC2 instances often only need one interface so this tends to get you the one and only private IP. See 'Usage Examples' section for usage paired with examples of metadata structure.
 
 Additional items:
 * The 'Tags' object is converted to a normal dict, so you can do `-x Tags.tag_key_name`
