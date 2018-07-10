@@ -79,3 +79,14 @@ Here is a trimmed down example of the NetworkInterfaces list, with just one inte
     },
 ]
 ```
+### Strict Mode (Just Key)
+This only lists instances with the tag 'environment'
+```
+python boto_excercise.py -r us-west-2 -p stage -t environment -s
+```
+
+### Strict Mode (Key & Value)
+This only lists instances where the tag 'environment' has value 'staging_1'
+```
+python boto_excercise.py -r us-west-2 -p stage -t environment -v staging_01 -s
+```
