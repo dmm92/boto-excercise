@@ -44,7 +44,7 @@ To add a column for availability zone, you can do the following:
 ```
 python boto_excercise.py -r us-west-2 -p stage -x Placement.AvailabilityZone
 ```
-This works because the 'Placement' key in the dictionary at describe_instances\['Reservations'\]\['Instances'\] has the following structure:
+This works because the 'Placement' key in the dictionary at `describe_instances['Reservations']['Instances']` has the following structure:
 ```python
 'Placement': {
     'AvailabilityZone': 'us-east-1a',
@@ -52,7 +52,7 @@ This works because the 'Placement' key in the dictionary at describe_instances\[
     'Tenancy': 'default'},
 }
 ```
-So `-x Placement.AvailabilityZone` fetches `describe_instances\['Reservations'\]\['Instances'\]\[n\]\['Placement'\]\['AvailabilityZone'\]` for all `n` instances
+So `-x Placement.AvailabilityZone` fetches `describe_instances['Reservations']['Instances'][n]['Placement']['AvailabilityZone']` for all `n` instances
 
 ### Add Multiple Columns With Arbitrary Properties (-x)
 Here we add an AZ column like in the above singular example, but we additionally add the private IP of the 0th network interface in the NetworkInterfaces list. EC2 instances often only need one interface so this tends to get you the one and only private IP. Notice that `NetworkInterfaces.0...` works, positive ints are supported for indexing in lists.
