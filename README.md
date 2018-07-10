@@ -86,7 +86,7 @@ python boto_excercise.py -r us-west-2 -p stage -t environment -s
 ```
 
 ### Strict Mode (Key & Value)
-This only lists instances where the tag 'environment' has value 'staging_1'
+This only lists instances where the tag 'environment' has value 'staging_01'
 ```
 python boto_excercise.py -r us-west-2 -p stage -t environment -v staging_01 -s
 ```
