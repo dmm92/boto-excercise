@@ -27,7 +27,7 @@ Currently does nothing unless `-s` (strict mode enabled). With `-s` allows you t
 ### -x (arbitrary properties)
 This argument allows you to specify arbitrary properties to display in additional columns. All it requires is knowing the structure of the boto response object returned by descibe_instances(). You can specify the property by its position in the instance metadata, each dictionary key or list index seperated by a period. You can supply multiple, separated by commas. 
 
-For example, `-x NetworkInterfaces.0.Association.PrivateIp` adds a column for the private IP of the 0th network interface in the NetworkInterfaces list. EC2 instances often only need one interface so this tends to get you the one and only private IP. See 'Usage Examples' section for usage paired with examples of metadata structure.
+For example, `-x NetworkInterfaces.0.PrivateIpAddress` adds a column for the private IP of the 0th network interface in the NetworkInterfaces list. EC2 instances often only need one interface so this tends to get you the one and only private IP. See 'Usage Examples' section for usage paired with examples of metadata structure.
 
 Additional items:
 * The 'Tags' object is converted to a normal dict, so you can do `-x Tags.tag_key_name`
@@ -57,7 +57,7 @@ So `-x Placement.AvailabilityZone` fetches `describe_instances['Reservations']['
 ### Add Multiple Columns With Arbitrary Properties (-x)
 Here we add an AZ column like in the above singular example, but we additionally add the private IP of the 0th network interface in the NetworkInterfaces list. EC2 instances often only need one interface so this tends to get you the one and only private IP. Notice that `NetworkInterfaces.0...` works, positive ints are supported for indexing in lists.
 ```
-python boto_excercise.py -r us-west-2 -p stage -x Placement.AvailabilityZone,NetworkInterfaces.0.Association.PrivateIp
+python boto_excercise.py -r us-west-2 -p stage -x Placement.AvailabilityZone,NetworkInterfaces.0.PrivateIpAddress
 ```
 Here is a trimmed down example of the NetworkInterfaces list, with just one interface:
 ```python
