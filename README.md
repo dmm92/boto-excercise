@@ -66,16 +66,18 @@ Here is a trimmed down example of the NetworkInterfaces list, with just one inte
         'Association': {
             'IpOwnerId': '12345678910',
             'PublicDnsName': 'ec2-52-206-160-108.compute-1.amazonaws.com',
-        'PublicIp': 'a.b.c.d'},
+            'PublicIp': 'a.b.c.d'
+        },
         'Attachment': {
             'AttachTime': datetime.datetime(2016, 8, 3, 20, 2, 25, tzinfo=tzutc()),
             'NetworkInterfaceId': 'eni-xxxxxxxx',
             'OwnerId': '12345678910',
         }
         'PrivateDnsName': 'ip-e-f-g-h.ec2.internal',
-        '.Association.PublicIp': 'e.f.g.h',
+        'PrivateIpAddress': 'e.f.g.h',
         'SubnetId': 'subnet-yyyyyyyy',
         'VpcId': 'vpc-zzzzzzzz'
+        
     },
 ]
 ```
